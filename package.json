@@ -1,0 +1,32 @@
+{
+  "name": "api-viewer",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lintf": "eslint . --fix"
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^2.7.0",
+    "@types/node": "^20.11.24",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "autoprefixer": "^10.4.18",
+    "dayjs": "^1.11.11",
+    "eslint": "^8.57.0",
+    "eslint-plugin-tailwindcss": "^3.14.3",
+    "postcss": "^8.4.35",
+    "shiki": "^1.6.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "unplugin-auto-import": "^0.17.5",
+    "vite": "^5.1.4",
+    "vue-tsc": "^2.0.4"
+  }
+}
