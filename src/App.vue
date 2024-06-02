@@ -40,7 +40,9 @@ onMounted(async () => {
     return {
       name: project,
       versionCount: archiveData.value[project].length,
-      latestVersion: formatTime(archiveData.value[project][0]),
+      latestVersion: formatTime(archiveData.value[project].sort((a, b) => {
+        return Number.parseInt(b) - Number.parseInt(a)
+      })[0]),
     }
   })
   handleProjectChange(projects.value[0].name)
