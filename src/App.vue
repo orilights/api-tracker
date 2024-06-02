@@ -124,7 +124,7 @@ function getShortTime(time: string) {
             @click="handleProjectChange(project.name)"
           >
             <div class="inline-block" v-html="project.name.replaceAll(searchStr, '<span class=\'text-blue-500\'>$&</span>')" />
-            <span class="ml-1 text-xs text-gray-500">{{ project.versionCount }}</span><br>
+            <span class="ml-1 rounded-md bg-gray-300 px-1 text-xs">{{ project.versionCount }}</span><br>
             <span class="text-xs text-gray-500">最新: {{ project.latestVersion }}  ({{ getShortTime(project.latestVersion) }})</span>
           </li>
         </ul>
