@@ -2,8 +2,11 @@
 import { getHighlighterCore } from 'shiki'
 import getWasm from 'shiki/wasm'
 import dayjs from 'dayjs'
+import { Settings } from '@orilight/vue-settings'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '.'
+
+const settings = new Settings('api-viewer')
 
 const highlighter = ref<any>(null)
 const archiveData = ref<Record<string, string[]>>({})
@@ -17,7 +20,13 @@ const versionData = ref('')
 const selectedProject = ref('')
 const selectedVersion = ref('')
 const searchStr = ref('')
+const sort = ref<'name' | 'update'>('name')
 
+const sortedProjects = computed(() => {
+  if (sort.value === 'name')
+    return projects.value.slice().sort((a, b) => a.name.localeCompare(b.name))
+  return projects.value.slice().sort((a, b) => dayjs(b.latestVersion).diff(dayjs(a.latestVersion)))
+})
 const display = computed(() => {
   if (highlighter.value === null)
     return ''
@@ -29,6 +38,7 @@ const display = computed(() => {
 const searchEnable = computed(() => searchStr.value.trim() !== '')
 
 onMounted(async () => {
+  settings.register('sort', sort)
   highlighter.value = await getHighlighterCore({
     themes: [import('shiki/themes/one-dark-pro.mjs')],
     langs: [import('shiki/langs/json.mjs')],
@@ -38,7 +48,7 @@ onMounted(async () => {
     .then(res => res.json())
     .then((data) => {
       archiveData.value = data
-      projects.value = Object.keys(archiveData.value).sort().map((project) => {
+      projects.value = Object.keys(archiveData.value).map((project) => {
         return {
           name: project,
           versionCount: archiveData.value[project].length,
@@ -47,7 +57,9 @@ onMounted(async () => {
           })[0]),
         }
       })
-      handleProjectChange(projects.value[0].name)
+      nextTick(() =>
+        handleProjectChange(sortedProjects.value[0].name),
+      )
     })
     .catch((_err) => {
       archiveData.value = {
@@ -59,6 +71,10 @@ onMounted(async () => {
         latestVersion: '',
       }]
     })
+})
+
+onUnmounted(() => {
+  settings.unregisterAll()
 })
 
 function handleProjectChange(project: string) {
@@ -124,6 +140,10 @@ function getShortTime(time: string) {
 
   return `${Math.floor(seconds / day)}天前`
 }
+
+function switchSort() {
+  sort.value = sort.value === 'name' ? 'update' : 'name'
+}
 </script>
 
 <template>
@@ -131,6 +151,16 @@ function getShortTime(time: string) {
     <div class="flex h-full w-[300px] shrink-0 flex-col border-r">
       <h2 class="gap-2 border-b p-2 text-xl font-bold">
         API
+        <button v-if="sort === 'name'" class="ml-2" title="按名称排序" @click="switchSort">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+          </svg>
+        </button>
+        <button v-if="sort === 'update'" class="ml-2" title="按更新时间排序" @click="switchSort">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        </button>
       </h2>
       <div>
         <input v-model="searchStr" type="text" placeholder="Search" class="w-full border-b p-2 outline-none">
@@ -138,7 +168,7 @@ function getShortTime(time: string) {
       <div class="flex-1 overflow-y-auto">
         <ul>
           <li
-            v-for="project in projects"
+            v-for="project in sortedProjects"
             v-show="!searchEnable || project.name.includes(searchStr)"
             :key="project.name"
             class="border-b px-2 py-1.5 transition-colors"

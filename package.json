@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.7.0",
+    "@orilight/vue-settings": "^1.2.2",
     "@types/node": "^20.11.24",
     "@vitejs/plugin-vue": "^5.0.4",
     "autoprefixer": "^10.4.18",

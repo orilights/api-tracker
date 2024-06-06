@@ -15,6 +15,9 @@ importers:
       '@antfu/eslint-config':
         specifier: ^2.7.0
         version: 2.7.0(@vue/compiler-sfc@3.4.21)(eslint@8.57.0)(typescript@5.3.3)
+      '@orilight/vue-settings':
+        specifier: ^1.2.2
+        version: 1.2.2(typescript@5.3.3)
       '@types/node':
         specifier: ^20.11.24
         version: 20.11.24
@@ -348,6 +351,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@orilight/vue-settings@1.2.2':
+    resolution: {integrity: sha512-KTNGxP36o2eRKqNdWyr5265YmyCXbMpI6Bes2lWh5npMqskgdhLV1YlgrC4t28XhwMZrXMzYyiWUPcKYzYOIRA==}
 
   '@rollup/pluginutils@5.1.0':
     resolution: {integrity: sha512-XTIWOPPcpvyKI6L1NHo0lFlCyznUEyPmPY1mc3KpPVDYulHSTvyeLNVW00QTLIAFNhR3kYnJTQHeGqU4M3n09g==}
@@ -2285,6 +2291,12 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
+
+  '@orilight/vue-settings@1.2.2(typescript@5.3.3)':
+    dependencies:
+      vue: 3.4.21(typescript@5.3.3)
+    transitivePeerDependencies:
+      - typescript
 
   '@rollup/pluginutils@5.1.0(rollup@4.5.0)':
     dependencies:
