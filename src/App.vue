@@ -7,6 +7,9 @@ import { SettingType, Settings } from '@orilight/vue-settings'
 import * as Diff from 'diff'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '.'
+const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
+
+let apiBase: string = API_BASE
 
 const settings = new Settings('api-viewer')
 
@@ -25,6 +28,7 @@ const selectedVersion = ref('')
 const searchStr = ref('')
 const sort = ref<'name' | 'update'>('name')
 const enableDiff = ref(true)
+const useFallback = ref(false)
 
 const sortedProjects = computed(() => {
   if (sort.value === 'name')
@@ -55,7 +59,15 @@ onMounted(async () => {
     langs: [import('shiki/langs/json.mjs')],
     loadWasm: getWasm,
   })
-  fetch(`${API_BASE}/archive.json`)
+  fetchData()
+})
+
+onUnmounted(() => {
+  settings.unregisterAll()
+})
+
+function fetchData() {
+  fetch(`${apiBase}/archive.json`)
     .then(res => res.json())
     .then((data) => {
       archiveData.value = data
@@ -73,6 +85,12 @@ onMounted(async () => {
       )
     })
     .catch((_err) => {
+      if (!useFallback.value && API_BASE_FALLBACK !== '') {
+        useFallback.value = true
+        apiBase = API_BASE_FALLBACK
+        fetchData()
+        return
+      }
       archiveData.value = {
         数据加载失败: [],
       }
@@ -82,11 +100,7 @@ onMounted(async () => {
         latestVersion: '',
       }]
     })
-})
-
-onUnmounted(() => {
-  settings.unregisterAll()
-})
+}
 
 function handleProjectChange(project: string) {
   selectedProject.value = project
@@ -100,7 +114,7 @@ function handleProjectChange(project: string) {
 
 function handleVersionChange(version: string) {
   selectedVersion.value = version
-  fetch(`${API_BASE}/archive/${selectedProject.value}-${selectedVersion.value}.json`)
+  fetch(`${apiBase}/archive/${selectedProject.value}-${selectedVersion.value}.json`)
     .then(response => response.text())
     .then((data) => {
       if (selectedVersion.value !== version)
@@ -110,7 +124,7 @@ function handleVersionChange(version: string) {
       const hasPreviousVersion = versions.value.indexOf(selectedVersion.value) + 1 < versions.value.length
       if (hasPreviousVersion) {
         const previousVersion = versions.value[versions.value.indexOf(selectedVersion.value) + 1]
-        fetch(`${API_BASE}/archive/${selectedProject.value}-${previousVersion}.json`)
+        fetch(`${apiBase}/archive/${selectedProject.value}-${previousVersion}.json`)
           .then(response => response.text())
           .then((previousData) => {
             if (selectedVersion.value !== version)
@@ -160,7 +174,7 @@ function copyVersionData() {
 
 function openVersionData() {
   const a = document.createElement('a')
-  a.href = `${API_BASE}/archive/${selectedProject.value}-${selectedVersion.value}.json`
+  a.href = `${apiBase}/archive/${selectedProject.value}-${selectedVersion.value}.json`
   a.target = '_blank'
   a.click()
 }
@@ -261,9 +275,9 @@ function switchSort() {
       <h2 class="border-b p-2 text-xl font-bold">
         Data
         <button
-          class="text-base font-medium"
+          class="rounded-md border px-2 text-base font-medium transition-colors"
           :class="{
-            'text-blue-500': enableDiff,
+            'border-blue-500 text-blue-500': enableDiff,
           }"
           @click="enableDiff = !enableDiff"
         >
