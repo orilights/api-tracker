@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { getHighlighterCore } from 'shiki'
+import { createHighlighterCore } from 'shiki'
 import getWasm from 'shiki/wasm'
+import { transformerNotationDiff } from '@shikijs/transformers'
 import dayjs from 'dayjs'
-import { Settings } from '@orilight/vue-settings'
+import { SettingType, Settings } from '@orilight/vue-settings'
+import * as Diff from 'diff'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '.'
 
@@ -17,10 +19,12 @@ const projects = ref<{
 }[]>([])
 const versions = ref<string[]>([])
 const versionData = ref('')
+const versionDataDiff = ref('')
 const selectedProject = ref('')
 const selectedVersion = ref('')
 const searchStr = ref('')
 const sort = ref<'name' | 'update'>('name')
+const enableDiff = ref(true)
 
 const sortedProjects = computed(() => {
   if (sort.value === 'name')
@@ -30,16 +34,23 @@ const sortedProjects = computed(() => {
 const display = computed(() => {
   if (highlighter.value === null)
     return ''
-  return highlighter.value.codeToHtml(versionData.value, {
-    lang: 'json',
-    theme: 'one-dark-pro',
-  })
+  return highlighter.value.codeToHtml(
+    enableDiff.value && versionDataDiff.value !== ''
+      ? versionDataDiff.value
+      : versionData.value,
+    {
+      lang: 'json',
+      theme: 'one-dark-pro',
+      transformers: [transformerNotationDiff()],
+    },
+  )
 })
 const searchEnable = computed(() => searchStr.value.trim() !== '')
 
 onMounted(async () => {
   settings.register('sort', sort)
-  highlighter.value = await getHighlighterCore({
+  settings.register('enableDiff', enableDiff, SettingType.Bool)
+  highlighter.value = await createHighlighterCore({
     themes: [import('shiki/themes/one-dark-pro.mjs')],
     langs: [import('shiki/langs/json.mjs')],
     loadWasm: getWasm,
@@ -92,7 +103,51 @@ function handleVersionChange(version: string) {
   fetch(`${API_BASE}/archive/${selectedProject.value}-${selectedVersion.value}.json`)
     .then(response => response.text())
     .then((data) => {
+      if (selectedVersion.value !== version)
+        return
       versionData.value = data
+      versionDataDiff.value = ''
+      const hasPreviousVersion = versions.value.indexOf(selectedVersion.value) + 1 < versions.value.length
+      if (hasPreviousVersion) {
+        const previousVersion = versions.value[versions.value.indexOf(selectedVersion.value) + 1]
+        fetch(`${API_BASE}/archive/${selectedProject.value}-${previousVersion}.json`)
+          .then(response => response.text())
+          .then((previousData) => {
+            if (selectedVersion.value !== version)
+              return
+            const diffs = Diff.diffLines(previousData, versionData.value)
+            let diffText = ''
+            diffs.forEach((part) => {
+              if (part.added) {
+                diffText += part.value.split('\n').map((line) => {
+                  if (line === '') {
+                    return ''
+                  }
+                  else {
+                    return `${line} // [!code ++]`
+                  }
+                }).join('\n')
+              }
+              else if (part.removed) {
+                diffText += part.value.split('\n').map((line) => {
+                  if (line === '') {
+                    return ''
+                  }
+                  else {
+                    return `${line} // [!code --]`
+                  }
+                }).join('\n')
+              }
+              else {
+                diffText += part.value
+              }
+            })
+            versionDataDiff.value = diffText
+          })
+          .catch(() => {
+            versionData.value = '数据加载失败'
+          })
+      }
     })
     .catch(() => {
       versionData.value = '数据加载失败'
@@ -205,6 +260,15 @@ function switchSort() {
     <div class="flex h-full flex-1 flex-col overflow-hidden">
       <h2 class="border-b p-2 text-xl font-bold">
         Data
+        <button
+          class="text-base font-medium"
+          :class="{
+            'text-blue-500': enableDiff,
+          }"
+          @click="enableDiff = !enableDiff"
+        >
+          Diff
+        </button>
         <button class="ml-2" title="复制" @click="copyVersionData">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
@@ -229,5 +293,33 @@ function switchSort() {
 <style>
 .shiki {
   @apply box-border p-4 size-full overflow-auto text-sm;
+}
+
+code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+
+code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115,138,148,.4)
+}
+
+.has-diff .diff.remove {
+  background-color: rgba(220, 38, 38, .14);
+}
+
+code .line.diff.remove::before {
+  content :'';
+  counter-increment: none;
+}
+
+.has-diff .diff.add {
+  background-color: rgba(16, 185, 129, .14);
 }
 </style>
