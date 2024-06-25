@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { createHighlighterCore } from 'shiki'
-import getWasm from 'shiki/wasm'
 import { transformerNotationDiff } from '@shikijs/transformers'
 import dayjs from 'dayjs'
 import { SettingType, Settings } from '@orilight/vue-settings'
 import * as Diff from 'diff'
+import type { HighlighterCore } from 'shiki'
+import { copyText, exportFile, formatTime, getShortTime, initShiki, renderDiffs, renderLink } from '@/utils'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '.'
 const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
@@ -13,7 +13,7 @@ let apiBase: string = API_BASE
 
 const settings = new Settings('api-viewer')
 
-const highlighter = ref<any>(null)
+const highlighter = ref<HighlighterCore | null>(null)
 const archiveData = ref<Record<string, string[]>>({})
 const projects = ref<{
   name: string
@@ -37,8 +37,8 @@ const sortedProjects = computed(() => {
 })
 const display = computed(() => {
   if (highlighter.value === null)
-    return ''
-  return highlighter.value.codeToHtml(
+    return 'highlighter not initialized'
+  return renderLink(highlighter.value.codeToHtml(
     enableDiff.value && versionDataDiff.value !== ''
       ? versionDataDiff.value
       : versionData.value,
@@ -47,18 +47,14 @@ const display = computed(() => {
       theme: 'one-dark-pro',
       transformers: [transformerNotationDiff()],
     },
-  )
+  ))
 })
 const searchEnable = computed(() => searchStr.value.trim() !== '')
 
 onMounted(async () => {
   settings.register('sort', sort)
   settings.register('enableDiff', enableDiff, SettingType.Bool)
-  highlighter.value = await createHighlighterCore({
-    themes: [import('shiki/themes/one-dark-pro.mjs')],
-    langs: [import('shiki/langs/json.mjs')],
-    loadWasm: getWasm,
-  })
+  highlighter.value = await initShiki()
   fetchData()
 })
 
@@ -121,47 +117,23 @@ function handleVersionChange(version: string) {
         return
       versionData.value = data
       versionDataDiff.value = ''
+
       const hasPreviousVersion = versions.value.indexOf(selectedVersion.value) + 1 < versions.value.length
-      if (hasPreviousVersion) {
-        const previousVersion = versions.value[versions.value.indexOf(selectedVersion.value) + 1]
-        fetch(`${apiBase}/archive/${selectedProject.value}-${previousVersion}.json`)
-          .then(response => response.text())
-          .then((previousData) => {
-            if (selectedVersion.value !== version)
-              return
-            const diffs = Diff.diffLines(previousData, versionData.value)
-            let diffText = ''
-            diffs.forEach((part) => {
-              if (part.added) {
-                diffText += part.value.split('\n').map((line) => {
-                  if (line === '') {
-                    return ''
-                  }
-                  else {
-                    return `${line} // [!code ++]`
-                  }
-                }).join('\n')
-              }
-              else if (part.removed) {
-                diffText += part.value.split('\n').map((line) => {
-                  if (line === '') {
-                    return ''
-                  }
-                  else {
-                    return `${line} // [!code --]`
-                  }
-                }).join('\n')
-              }
-              else {
-                diffText += part.value
-              }
-            })
-            versionDataDiff.value = diffText
-          })
-          .catch(() => {
-            versionData.value = '数据加载失败'
-          })
-      }
+      if (!hasPreviousVersion)
+        return
+
+      const previousVersion = versions.value[versions.value.indexOf(selectedVersion.value) + 1]
+      fetch(`${apiBase}/archive/${selectedProject.value}-${previousVersion}.json`)
+        .then(response => response.text())
+        .then((previousData) => {
+          if (selectedVersion.value !== version)
+            return
+          const diffs = Diff.diffLines(previousData, versionData.value)
+          versionDataDiff.value = renderDiffs(diffs)
+        })
+        .catch(() => {
+          versionData.value = '数据加载失败'
+        })
     })
     .catch(() => {
       versionData.value = '数据加载失败'
@@ -169,7 +141,7 @@ function handleVersionChange(version: string) {
 }
 
 function copyVersionData() {
-  navigator.clipboard.writeText(versionData.value)
+  copyText(versionData.value)
 }
 
 function openVersionData() {
@@ -180,34 +152,7 @@ function openVersionData() {
 }
 
 function downloadVersionData() {
-  const blob = new Blob([versionData.value], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${selectedProject.value}-${selectedVersion.value}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function formatTime(time: string) {
-  return dayjs(time, 'YYYYMMDDHHmmss').format('YYYY-MM-DD HH:mm:ss')
-}
-
-function getShortTime(time: string) {
-  const minute = 60
-  const hour = 60 * minute
-  const day = 24 * hour
-  const seconds = dayjs().diff(dayjs(time, 'YYYYMMDDHHmmss'), 'second')
-  if (seconds < minute)
-    return `${seconds}秒前`
-
-  if (seconds < hour)
-    return `${Math.floor(seconds / minute)}分钟前`
-
-  if (seconds < day)
-    return `${Math.floor(seconds / hour)}小时前`
-
-  return `${Math.floor(seconds / day)}天前`
+  exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
 }
 
 function switchSort() {
@@ -312,7 +257,7 @@ function switchSort() {
   </div>
 </template>
 
-<style>
+<style lang="scss">
 .shiki {
   @apply box-border p-4 size-full overflow-auto text-sm;
 }
@@ -336,12 +281,16 @@ code .line::before {
   background-color: rgba(220, 38, 38, .14);
 }
 
-code .line.diff.remove::before {
+.has-diff .diff.remove::before {
   content :'';
   counter-increment: none;
 }
 
 .has-diff .diff.add {
   background-color: rgba(16, 185, 129, .14);
+}
+
+.click-link {
+  text-decoration: underline;
 }
 </style>
