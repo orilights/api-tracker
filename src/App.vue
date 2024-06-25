@@ -11,7 +11,7 @@ const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
 
 let apiBase: string = API_BASE
 
-const settings = new Settings('api-viewer')
+const settings = new Settings('api-tracker')
 
 const highlighter = ref<HighlighterCore | null>(null)
 const archiveData = ref<Record<string, string[]>>({})
