@@ -152,7 +152,8 @@ function openVersionData() {
 }
 
 function downloadVersionData() {
-  exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
+  // exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
+  exportFile(display.value, 'test.txt')
 }
 
 function switchSort() {
@@ -201,7 +202,11 @@ function switchSort() {
           >
             <div class="inline-block" v-html="project.name.replaceAll(searchStr, '<span class=\'text-blue-500\'>$&</span>')" />
             <span class="ml-1 rounded-md bg-gray-500/20 px-1 text-xs">{{ project.versionCount }}</span><br>
-            <span class="text-xs text-gray-500">最新: {{ project.latestVersion }}  ({{ getShortTime(project.latestVersion) }})</span>
+            <div class="mt-1 text-xs">
+              <span class="text-gray-500">最新: {{ project.latestVersion }}</span>
+              <span class="ml-1 text-gray-500">({{ getShortTime(project.latestVersion) }})</span>
+              <span v-if="project.name.endsWith('_D')" class="ml-1 text-red-500">已弃用</span>
+            </div>
           </li>
         </ul>
       </div>
