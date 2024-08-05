@@ -152,8 +152,7 @@ function openVersionData() {
 }
 
 function downloadVersionData() {
-  // exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
-  exportFile(display.value, 'test.txt')
+  exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
 }
 
 function switchSort() {
