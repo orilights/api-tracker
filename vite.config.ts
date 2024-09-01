@@ -14,7 +14,7 @@ export default defineConfig({
     vue(),
     AutoImport({
       imports: ['vue'],
-      dts: true,
+      dts: 'src/auto-imports.d.ts',
       vueTemplate: true,
     }),
   ],

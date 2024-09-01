@@ -20,6 +20,7 @@ const projects = ref<{
   versionCount: number
   latestVersion: string
 }[]>([])
+const nameDict = ref<Record<string, string>>({})
 const versions = ref<string[]>([])
 const versionData = ref('')
 const versionDataDiff = ref('')
@@ -27,6 +28,7 @@ const selectedProject = ref('')
 const selectedVersion = ref('')
 const searchStr = ref('')
 const sort = ref<'name' | 'update'>('name')
+const displayName = ref(true)
 const enableDiff = ref(true)
 const useFallback = ref(false)
 
@@ -53,6 +55,7 @@ const searchEnable = computed(() => searchStr.value.trim() !== '')
 
 onMounted(async () => {
   settings.register('sort', sort)
+  settings.register('displayName', displayName, SettingType.Bool)
   settings.register('enableDiff', enableDiff, SettingType.Bool)
   highlighter.value = await initShiki()
   fetchData()
@@ -76,6 +79,7 @@ function fetchData() {
           })[0]),
         }
       })
+      fetchNameDict()
       nextTick(() =>
         handleProjectChange(sortedProjects.value[0].name),
       )
@@ -95,6 +99,17 @@ function fetchData() {
         versionCount: 0,
         latestVersion: '',
       }]
+    })
+}
+
+function fetchNameDict() {
+  fetch(`${apiBase}/index.json`)
+    .then(res => res.json())
+    .then((data) => {
+      nameDict.value = data
+    })
+    .catch(() => {
+      nameDict.value = {}
     })
 }
 
@@ -155,8 +170,19 @@ function downloadVersionData() {
   exportFile(versionData.value, `${selectedProject.value}-${selectedVersion.value}.json`)
 }
 
+function switchFullscreen() {
+  const el = document.querySelector('.browser')
+  if (el === null)
+    return
+  el.requestFullscreen()
+}
+
 function switchSort() {
   sort.value = sort.value === 'name' ? 'update' : 'name'
+}
+
+function getName(key: string) {
+  return displayName.value ? (nameDict.value[key] || key) : key
 }
 </script>
 
@@ -183,6 +209,14 @@ function switchSort() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
         </button>
+        <button
+          class="ml-2 transition-colors hover:text-blue-500" title="切换名称显示"
+          @click="displayName = !displayName"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m10.5 21 5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 0 1 6-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 0 1-3.827-5.802" />
+          </svg>
+        </button>
       </h2>
       <div>
         <input v-model="searchStr" type="text" placeholder="Search" class="w-full border-b p-2 outline-none">
@@ -199,8 +233,13 @@ function switchSort() {
             }"
             @click="handleProjectChange(project.name)"
           >
-            <div class="inline-block" v-html="project.name.replaceAll(searchStr, '<span class=\'text-blue-500\'>$&</span>')" />
-            <span class="ml-1 rounded-md bg-gray-500/20 px-1 text-xs">{{ project.versionCount }}</span><br>
+            <div class="break-all">
+              <span v-if="searchEnable" v-html="project.name.replace(new RegExp(searchStr, 'g'), '<span class=\'text-blue-500\'>$&</span>')" />
+              <span v-else>
+                {{ getName(project.name) }}
+              </span>
+              <span class="ml-1 rounded-md bg-gray-500/20 px-1 text-xs">{{ project.versionCount }}</span>
+            </div>
             <div class="mt-1 text-xs">
               <span class="text-gray-500">最新: {{ project.latestVersion }}</span>
               <span class="ml-1 text-gray-500">({{ getShortTime(project.latestVersion) }})</span>
@@ -210,20 +249,20 @@ function switchSort() {
         </ul>
       </div>
     </div>
-    <div class="flex h-full w-[200px] shrink-0 flex-col border-r">
+    <div class="flex h-full w-[220px] shrink-0 flex-col border-r">
       <h2 class="flex h-[45px] items-center border-b px-2 text-xl font-bold">
         Version
       </h2>
       <div class="flex-1 overflow-y-auto">
         <ul>
           <li
-            v-for="version in versions" :key="version" class="border-b px-2 py-0.5 transition-colors"
+            v-for="version in versions" :key="version" class="border-b px-2 py-1 text-sm transition-colors"
             :class="{
               'bg-gray-200': selectedVersion === version,
             }"
             @click="handleVersionChange(version)"
           >
-            {{ formatTime(version) }}
+            {{ formatTime(version) }} <span class="text-xs text-gray-500">({{ getShortTime(version) }})</span>
           </li>
         </ul>
       </div>
@@ -232,9 +271,9 @@ function switchSort() {
       <h2 class="flex h-[45px] items-center border-b px-2 text-xl font-bold">
         Data
         <button
-          class="mx-2 box-border rounded-md border px-2 text-base font-medium transition-colors hover:border-gray-500"
+          class="mx-2 box-border rounded-md border px-2 text-base font-medium transition-colors hover:border-blue-500 hover:text-blue-500"
           :class="{
-            '!border-blue-500 text-blue-500': enableDiff,
+            'border-blue-500 bg-blue-500 !text-white hover:border-blue-400 hover:bg-blue-400': enableDiff,
           }"
           @click="enableDiff = !enableDiff"
         >
@@ -255,8 +294,13 @@ function switchSort() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
           </svg>
         </button>
+        <button class="ml-2 transition-colors hover:text-blue-500" title="下载" @click="switchFullscreen">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+          </svg>
+        </button>
       </h2>
-      <div class="w-full flex-1 overflow-hidden" v-html="display" />
+      <div class="browser w-full flex-1 overflow-hidden" v-html="display" />
     </div>
   </div>
 </template>
@@ -269,6 +313,10 @@ function switchSort() {
 code {
   counter-reset: step;
   counter-increment: step 0;
+}
+
+code .line {
+  width: 100%;
 }
 
 code .line::before {
