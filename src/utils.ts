@@ -28,7 +28,7 @@ export function renderLink(html: string) {
 
   return html.replace(regex, (text) => {
     const url = text.slice(1, -1)
-    return `"<a href="${url}"" target="_blank" class="click-link">${url}</a>"`
+    return `"<a href="${url}"" target="_blank" class="link">${url}</a>"`
   })
 }
 
@@ -40,9 +40,7 @@ export function renderDiffs(diffs: Diff.Change[]) {
         if (line === '') {
           return ''
         }
-        else {
-          return `${line} // [!code ++]`
-        }
+        return `${line} // [!code ++]`
       }).join('\n')
     }
     else if (part.removed) {
@@ -50,9 +48,7 @@ export function renderDiffs(diffs: Diff.Change[]) {
         if (line === '') {
           return ''
         }
-        else {
-          return `${line} // [!code --]`
-        }
+        return `${line} // [!code --]`
       }).join('\n')
     }
     else {
@@ -64,6 +60,13 @@ export function renderDiffs(diffs: Diff.Change[]) {
 
 export function copyText(text: string) {
   navigator.clipboard.writeText(text)
+}
+
+export function openLink(url: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.target = '_blank'
+  a.click()
 }
 
 export function exportFile(data: string, fileName: string) {
