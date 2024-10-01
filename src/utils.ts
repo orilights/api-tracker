@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { createHighlighterCore } from 'shiki'
-import getWasm from 'shiki/wasm'
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 
 export function formatTime(time: string) {
   return dayjs(time, 'YYYYMMDDHHmmss').format('YYYY-MM-DD HH:mm:ss')
@@ -80,9 +80,10 @@ export function exportFile(data: string, fileName: string) {
 }
 
 export function initShiki() {
+  const jsEngine = createJavaScriptRegexEngine()
   return createHighlighterCore({
     themes: [import('shiki/themes/one-dark-pro.mjs')],
     langs: [import('shiki/langs/json.mjs')],
-    loadWasm: getWasm,
+    engine: jsEngine,
   })
 }
