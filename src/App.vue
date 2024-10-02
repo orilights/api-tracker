@@ -31,8 +31,12 @@ const sort = ref<'name' | 'update'>('name')
 const displayName = ref(true)
 const enableDiff = ref(true)
 const useFallback = ref(false)
-const showImages = ref(false)
-const images = ref<string[]>([])
+
+const dialog = ref({
+  show: false,
+  type: 'link' as 'link' | 'image',
+  data: [] as string[],
+})
 
 const sortedProjects = computed(() => {
   if (sort.value === 'name')
@@ -189,11 +193,22 @@ function getProjectDisplayName(key: string) {
   return displayName.value ? (nameDict.value[key] || key) : key
 }
 
-function extractImages() {
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+function extractLinks(showType: 'link' | 'image' = 'link') {
   const links = versionData.value.match(/https?:\/\/[^'"\s\\]+/g) || []
-  images.value = links.filter(link => imageExts.some(ext => link.endsWith(ext)))
-  showImages.value = true
+  if (showType === 'link') {
+    dialog.value = {
+      show: true,
+      type: 'link',
+      data: links,
+    }
+    return
+  }
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+  dialog.value = {
+    show: true,
+    type: 'image',
+    data: links.filter(link => imageExts.some(ext => link.endsWith(ext))),
+  }
 }
 </script>
 
@@ -310,7 +325,12 @@ function extractImages() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
           </svg>
         </button>
-        <button class="ml-2 transition-colors hover:text-blue-500" title="提取图片" @click="extractImages">
+        <button class="ml-2 transition-colors hover:text-blue-500" title="提取链接" @click="extractLinks('link')">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+          </svg>
+        </button>
+        <button class="ml-2 transition-colors hover:text-blue-500" title="提取图片" @click="extractLinks('image')">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
           </svg>
@@ -320,38 +340,65 @@ function extractImages() {
     </div>
     <Teleport to="body">
       <Transition name="fade">
-        <div v-show="showImages" class="fixed left-0 top-0 flex h-screen w-screen justify-center overflow-y-auto bg-black/30 p-[60px]" @click="showImages = false">
-          <div class="content relative mx-auto h-fit w-[730px] rounded-md border bg-white p-2" @click.stop="null">
+        <div v-show="dialog.show" class="fixed left-0 top-0 flex h-screen w-screen justify-center overflow-y-auto bg-black/30 px-[20px] py-[60px]" @click="dialog.show = false">
+          <div class="content relative mx-auto h-fit w-full rounded-md border bg-white p-2 md:w-[730px]" @click.stop="null">
             <div class="flex items-center justify-between">
               <span class="pl-4 font-bold">
-                图片提取
+                {{ dialog.type === 'link' ? '链接' : '图片' }}提取
+                <span class="rounded-md bg-gray-500/20 px-1 text-xs font-normal">{{ dialog.data.length }}</span>
               </span>
-              <button class="rounded-md p-2 transition-colors hover:bg-black/10" @click="showImages = false">
+              <button class="rounded-md p-2 transition-colors hover:bg-black/10" @click="dialog.show = false">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div v-if="images.length === 0" class="p-2 text-center text-sm text-gray-500">
-              无数据
-            </div>
-            <div class="flex flex-wrap p-2">
-              <div v-for="image in images" :key="image" :title="image" class="inline-block rounded-md p-2 transition-colors hover:bg-black/10">
-                <img class="block h-[50px] w-[100px] rounded object-scale-down" loading="lazy" :src="image">
-                <div class="flex justify-center gap-2 p-2">
-                  <button class="transition-colors hover:text-blue-500" title="复制图片链接" @click="copyText(image)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-                    </svg>
-                  </button>
-                  <button class="transition-colors hover:text-blue-500" title="新窗口打开" @click="openLink(image)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
-                  </button>
+            <template v-if="dialog.type === 'link'">
+              <div v-if="dialog.data.length === 0" class="p-2 text-center text-sm text-gray-500">
+                无数据
+              </div>
+              <div class="flex flex-wrap p-2">
+                <div v-for="link in dialog.data" :key="link" :title="link" class="flex min-w-full justify-between gap-2 text-nowrap rounded-md p-2 text-xs transition-colors hover:bg-black/10">
+                  <div class=" overflow-hidden text-ellipsis">
+                    {{ link }}
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="transition-colors hover:text-blue-500" title="复制链接" @click="copyText(link)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                      </svg>
+                    </button>
+                    <button class="transition-colors hover:text-blue-500" title="新窗口打开" @click="openLink(link)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
+            <template v-if="dialog.type === 'image'">
+              <div v-if="dialog.data.length === 0" class="p-2 text-center text-sm text-gray-500">
+                无数据
+              </div>
+              <div class="flex flex-wrap p-2">
+                <div v-for="image in dialog.data" :key="image" :title="image" class="inline-block rounded-md p-2 transition-colors hover:bg-black/10">
+                  <img class="block h-[50px] w-[100px] rounded object-scale-down" loading="lazy" :src="image">
+                  <div class="flex justify-center gap-2 p-2">
+                    <button class="transition-colors hover:text-blue-500" title="复制图片链接" @click="copyText(image)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                      </svg>
+                    </button>
+                    <button class="transition-colors hover:text-blue-500" title="新窗口打开" @click="openLink(image)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </Transition>
@@ -361,16 +408,20 @@ function extractImages() {
 
 <style lang="scss">
 .shiki {
-  @apply box-border p-4 size-full overflow-auto text-sm;
+  box-sizing: border-box;
+  padding: 16px;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  @apply text-sm
 }
 
 code {
+  display: block;
   counter-reset: step;
   counter-increment: step 0;
-}
-
-code .line {
-  width: 100%;
+  min-width: 100%;
+  width: fit-content;
 }
 
 code .line::before {
@@ -385,6 +436,13 @@ code .line::before {
 
 code .link {
   text-decoration: underline;
+}
+
+.has-diff .diff.line {
+  width: calc(100% + 32px);
+  display: inline-block;
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
 .has-diff .diff.remove {

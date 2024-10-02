@@ -24,11 +24,10 @@ export function getShortTime(time: string) {
 }
 
 export function renderLink(html: string) {
-  const regex = /"https?:\/\/[^"]+"/g
+  const regex = /https?:\/\/[^'"\s\\]+/g
 
   return html.replace(regex, (text) => {
-    const url = text.slice(1, -1)
-    return `"<a href="${url}"" target="_blank" class="link">${url}</a>"`
+    return `<a href="${text}"" target="_blank" class="link">${text}</a>`
   })
 }
 
