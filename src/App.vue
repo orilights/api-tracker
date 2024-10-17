@@ -340,7 +340,7 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
     </div>
     <Teleport to="body">
       <Transition name="fade">
-        <div v-show="dialog.show" class="fixed left-0 top-0 flex h-screen w-screen justify-center overflow-y-auto bg-black/30 px-[20px] py-[60px]" @click="dialog.show = false">
+        <div v-if="dialog.show" class="fixed left-0 top-0 flex h-screen w-screen justify-center overflow-y-auto bg-black/30 px-[20px] py-[60px]" @click="dialog.show = false">
           <div class="content relative mx-auto h-fit w-full rounded-md border bg-white p-2 md:w-[730px]" @click.stop="null">
             <div class="flex items-center justify-between">
               <span class="pl-4 font-bold">
