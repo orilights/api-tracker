@@ -189,7 +189,7 @@ function switchSort() {
   sort.value = sort.value === 'name' ? 'update' : 'name'
 }
 
-function getProjectDisplayName(key: string) {
+function getDisplayName(key: string) {
   return displayName.value ? (nameDict.value[key] || key) : key
 }
 
@@ -209,6 +209,13 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
     type: 'image',
     data: links.filter(link => imageExts.some(ext => link.endsWith(ext))),
   }
+}
+function searchFilter(projectName: string) {
+  return !searchEnable.value || getDisplayName(projectName).includes(searchStr.value)
+}
+
+function highlightKeyword(projectName: string, keyword: string) {
+  return getDisplayName(projectName).replace(new RegExp(keyword, 'g'), '<span class=\'text-blue-500\'>$&</span>')
 }
 </script>
 
@@ -251,7 +258,7 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
         <ul>
           <li
             v-for="project in sortedProjects"
-            v-show="!searchEnable || project.name.includes(searchStr)"
+            v-show="searchFilter(project.name)"
             :key="project.name"
             class="border-b px-2 py-1.5 transition-colors"
             :class="{
@@ -260,9 +267,9 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
             @click="handleProjectChange(project.name)"
           >
             <div class="break-all">
-              <span v-if="searchEnable" v-html="project.name.replace(new RegExp(searchStr, 'g'), '<span class=\'text-blue-500\'>$&</span>')" />
+              <span v-if="searchEnable" v-html="highlightKeyword(project.name, searchStr)" />
               <span v-else>
-                {{ getProjectDisplayName(project.name) }}
+                {{ getDisplayName(project.name) }}
               </span>
               <span class="ml-1 rounded-md bg-gray-500/20 px-1 text-xs">{{ project.versionCount }}</span>
             </div>
@@ -276,8 +283,18 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
       </div>
     </div>
     <div class="flex h-full w-[240px] shrink-0 flex-col border-r">
-      <h2 class="flex h-[45px] items-center border-b px-2 text-xl font-bold">
-        Version
+      <h2 class="flex h-[45px] items-center border-b px-2 ">
+        <span class="text-xl font-bold">
+          Version
+        </span>
+        <div class="group relative ml-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+          <div class="pointer-events-none absolute left-[-102px] top-6 w-[220px] rounded-md border bg-white p-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+            此处显示时间为抓取到更新的时间，抓取存在间隔且可能遇到网络错误，通常与 API 实际更新时间存在 0~10 分钟的延迟。
+          </div>
+        </div>
       </h2>
       <div class="flex-1 overflow-y-auto">
         <ul>
@@ -358,7 +375,7 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
                 无数据
               </div>
               <div class="flex flex-wrap p-2">
-                <div v-for="link in dialog.data" :key="link" :title="link" class="flex min-w-full justify-between gap-2 text-nowrap rounded-md p-2 text-xs transition-colors hover:bg-black/10">
+                <div v-for="link in dialog.data" :key="link" :title="link" class="flex min-w-full justify-between gap-2 text-nowrap rounded-md p-2 text-xs transition-all hover:bg-black/10 hover:pl-4">
                   <div class=" overflow-hidden text-ellipsis">
                     {{ link }}
                   </div>
