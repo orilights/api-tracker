@@ -135,7 +135,7 @@ function handleProjectChange(project: string) {
 
 function handleVersionChange(version: string) {
   selectedVersion.value = version
-  fetch(`${apiBase}/archive/${selectedProject.value}-${selectedVersion.value}.json`)
+  fetch(`${apiBase}/archive/${selectedProject.value}/${selectedVersion.value}.json`)
     .then(response => response.text())
     .then((data) => {
       if (selectedVersion.value !== version)
@@ -149,7 +149,7 @@ function handleVersionChange(version: string) {
         return
 
       const previousVersion = versions.value[currentVersionIndex + 1]
-      fetch(`${apiBase}/archive/${selectedProject.value}-${previousVersion}.json`)
+      fetch(`${apiBase}/archive/${selectedProject.value}/${previousVersion}.json`)
         .then(response => response.text())
         .then((previousData) => {
           if (selectedVersion.value !== version)
@@ -171,7 +171,7 @@ function copyVersionData() {
 }
 
 function openVersionData() {
-  openLink(`${apiBase}/archive/${selectedProject.value}-${selectedVersion.value}.json`)
+  openLink(`${apiBase}/archive/${selectedProject.value}/${selectedVersion.value}.json`)
 }
 
 function downloadVersionData() {
