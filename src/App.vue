@@ -252,7 +252,7 @@ function highlightKeyword(projectName: string, keyword: string) {
         </button>
       </h2>
       <div>
-        <input v-model="searchStr" type="text" placeholder="Search" class="w-full border-b p-2 outline-none">
+        <input v-model="searchStr" type="text" placeholder="Search" class="w-full border-b p-2 outline-hidden">
       </div>
       <div class="flex-1 overflow-y-auto">
         <ul>
@@ -316,7 +316,7 @@ function highlightKeyword(projectName: string, keyword: string) {
         <button
           class="mx-2 box-border rounded-md border px-2 text-base font-medium transition-colors hover:border-blue-500 hover:text-blue-500"
           :class="{
-            'border-blue-500 bg-blue-500 !text-white hover:border-blue-400 hover:bg-blue-400': enableDiff,
+            'border-blue-500 bg-blue-500 text-white! hover:border-blue-400 hover:bg-blue-400': enableDiff,
           }"
           @click="enableDiff = !enableDiff"
         >
@@ -400,7 +400,7 @@ function highlightKeyword(projectName: string, keyword: string) {
               </div>
               <div class="flex flex-wrap p-2">
                 <div v-for="image in dialog.data" :key="image" :title="image" class="inline-block rounded-md p-2 transition-colors hover:bg-black/10">
-                  <img class="block h-[50px] w-[100px] rounded object-scale-down" loading="lazy" :src="image">
+                  <img class="block h-[50px] w-[100px] rounded-sm object-scale-down" loading="lazy" :src="image">
                   <div class="flex justify-center gap-2 p-2">
                     <button class="transition-colors hover:text-blue-500" title="复制图片链接" @click="copyText(image)">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -430,7 +430,8 @@ function highlightKeyword(projectName: string, keyword: string) {
   width: 100%;
   height: 100%;
   overflow: auto;
-  @apply text-sm
+  font-size: var(--text-sm);
+  line-height: var(--tw-leading, var(--text-sm--line-height));
 }
 
 code {
