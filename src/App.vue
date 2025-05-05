@@ -24,6 +24,7 @@ const nameDict = ref<Record<string, string>>({})
 const versions = ref<string[]>([])
 const versionData = ref('')
 const versionDataDiff = ref('')
+const versionDataLoading = ref(false)
 const selectedProject = ref('')
 const selectedVersion = ref('')
 const searchStr = ref('')
@@ -46,16 +47,17 @@ const sortedProjects = computed(() => {
 const display = computed(() => {
   if (highlighter.value === null)
     return 'highlighter not initialized'
-  return renderLink(highlighter.value.codeToHtml(
-    enableDiff.value && versionDataDiff.value !== ''
-      ? versionDataDiff.value
-      : versionData.value,
-    {
-      lang: 'json',
-      theme: 'one-dark-pro',
-      transformers: [transformerNotationDiff()],
-    },
-  ))
+  let content = versionData.value
+  if (enableDiff.value && versionDataDiff.value !== '')
+    content = versionDataDiff.value
+  if (versionDataLoading.value) {
+    content = '数据加载中'
+  }
+  return renderLink(highlighter.value.codeToHtml(content, {
+    lang: 'json',
+    theme: 'one-dark-pro',
+    transformers: [transformerNotationDiff()],
+  }))
 })
 const searchEnable = computed(() => searchStr.value.trim() !== '')
 
@@ -135,6 +137,7 @@ function handleProjectChange(project: string) {
 
 function handleVersionChange(version: string) {
   selectedVersion.value = version
+  versionDataLoading.value = true
   fetch(`${apiBase}/archive/${selectedProject.value}/${selectedVersion.value}.json`)
     .then(response => response.text())
     .then((data) => {
@@ -163,6 +166,10 @@ function handleVersionChange(version: string) {
     })
     .catch(() => {
       versionData.value = '数据加载失败'
+    })
+    .finally(() => {
+      if (selectedVersion.value === version)
+        versionDataLoading.value = false
     })
 }
 
