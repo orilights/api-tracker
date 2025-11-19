@@ -218,11 +218,11 @@ function extractLinks(showType: 'link' | 'image' = 'link') {
   }
 }
 function searchFilter(projectName: string) {
-  return !searchEnable.value || getDisplayName(projectName).includes(searchStr.value)
+  return !searchEnable.value || getDisplayName(projectName).toLowerCase().includes(searchStr.value.toLowerCase())
 }
 
 function highlightKeyword(projectName: string, keyword: string) {
-  return getDisplayName(projectName).replace(new RegExp(keyword, 'g'), '<span class=\'text-blue-500\'>$&</span>')
+  return getDisplayName(projectName).replace(new RegExp(keyword, 'gi'), '<span class=\'text-blue-500\'>$&</span>')
 }
 </script>
 
@@ -267,20 +267,20 @@ function highlightKeyword(projectName: string, keyword: string) {
             v-for="project in sortedProjects"
             v-show="searchFilter(project.name)"
             :key="project.name"
-            class="border-b px-2 py-1.5 transition-colors"
+            class="border-b px-2 py-1 transition-colors"
             :class="{
               'bg-gray-200': selectedProject === project.name,
             }"
             @click="handleProjectChange(project.name)"
           >
-            <div class="break-all">
+            <div class="break-all text-sm">
               <span v-if="searchEnable" v-html="highlightKeyword(project.name, searchStr)" />
               <span v-else>
                 {{ getDisplayName(project.name) }}
               </span>
               <span class="ml-1 rounded-md bg-gray-500/20 px-1 text-xs">{{ project.versionCount }}</span>
             </div>
-            <div class="mt-1 text-xs">
+            <div class="mt-0.5 text-xs">
               <span class="text-gray-500">最新: {{ project.latestVersion }}</span>
               <span class="ml-1 text-gray-500">({{ getShortTime(project.latestVersion) }})</span>
               <span v-if="project.name.endsWith('_D')" class="ml-1 text-red-500">已弃用</span>
